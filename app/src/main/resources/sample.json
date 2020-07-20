@@ -1,0 +1,7 @@
+{
+  "testing": "result",
+  "array": [
+    {"first":"good"},
+    {"second":"bad"}
+  ]
+}
