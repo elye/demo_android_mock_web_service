@@ -9,10 +9,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
+import java.io.*
 import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 
@@ -216,6 +213,27 @@ class ChatTest {
                 return builder.toString()
             } finally {
                 inputStream?.close()
+            }
+        }
+
+        @Throws(IOException::class)
+        fun readBinaryFileFromResources(fileName: String): ByteArray {
+            var inputStream: InputStream? = null
+            val byteStream = ByteArrayOutputStream()
+            try {
+                inputStream = javaClass.classLoader?.getResourceAsStream(fileName)
+
+                var nextValue = inputStream?.read() ?: -1
+
+                while ( nextValue != -1 ) {
+                    byteStream.write(nextValue)
+                    nextValue = inputStream?.read() ?: -1
+                }
+                return byteStream.toByteArray()
+
+            } finally {
+                inputStream?.close()
+                byteStream.close()
             }
         }
     }
