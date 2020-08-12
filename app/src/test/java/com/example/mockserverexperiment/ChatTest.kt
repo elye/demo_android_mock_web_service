@@ -112,7 +112,7 @@ class ChatTest {
                     "/v1/file/json" -> return MockResponse().setResponseCode(200)
                         .setBody(FileUtil.readFileWithoutNewLineFromResources("sample.json"))
                     "/v1/file/jsonverbatim" -> return MockResponse().setResponseCode(200)
-                        .setBody(FileUtil.readFileWithNewLineFromResources("sample.json"))
+                        .setBody(FileUtil.kotlinReadFileWithNewLineFromResources("sample.json"))
                 }
                 return MockResponse().setResponseCode(404)
             }
@@ -129,9 +129,11 @@ class ChatTest {
 
         val result3 = chat.loadPath("profile", "info")
         assertEquals(200, result3.first)
-        assertEquals("{\\\"info\\\":" +
-                "{\\\"name\":\"Lucas Albuquerque\"," +
-                "\"age\":\"21\",\"gender\":\"male\"}}", result3.second )
+        assertEquals(
+            "{\\\"info\\\":" +
+                    "{\\\"name\":\"Lucas Albuquerque\"," +
+                    "\"age\":\"21\",\"gender\":\"male\"}}", result3.second
+        )
 
         val result4 = chat.loadPath("login", "something")
         assertEquals(404, result4.first)
@@ -139,13 +141,39 @@ class ChatTest {
 
         val result5 = chat.loadPath("file", "json")
         assertEquals(200, result5.first)
-        assertEquals("{  \"testing\": \"result\",  \"array\": [    " +
-                "{\"first\":\"good\"},    {\"second\":\"bad\"}  ]}", result5.second )
+        assertEquals(
+            "{  \"testing\": \"result\",  \"array\": [    " +
+                    "{\"first\":\"good\"},    {\"second\":\"bad\"}  ]}", result5.second
+        )
 
         val result6 = chat.loadPath("file", "jsonverbatim")
         assertEquals(200, result6.first)
-        assertEquals("{\n  \"testing\": \"result\",\n  \"array\": [\n    " +
-                "{\"first\":\"good\"},\n    {\"second\":\"bad\"}\n  ]\n}", result6.second )
+        assertEquals(
+            "{\n  \"testing\": \"result\",\n  \"array\": [\n    " +
+                    "{\"first\":\"good\"},\n    {\"second\":\"bad\"}\n  ]\n}", result6.second
+        )
+    }
+
+    @Test
+    fun `test file reading`() {
+        val finalResult = "{\n  \"testing\": \"result\",\n  \"array\": [\n    " +
+                "{\"first\":\"good\"},\n    {\"second\":\"bad\"}\n  ]\n}"
+
+        assertEquals(finalResult,
+            FileUtil.readFileWithNewLineFromResources("sample.json")
+        )
+
+        assertEquals(finalResult,
+            FileUtil.kotlinReadFileWithNewLineFromResources("sample.json")
+        )
+
+        assertEquals(finalResult,
+            String(FileUtil.readBinaryFileFromResources("sample.json"))
+        )
+
+        assertEquals(finalResult,
+            String(FileUtil.kotlinReadBinaryFileFromResources("sample.json"))
+        )
     }
 
     @Test
@@ -159,11 +187,13 @@ class ChatTest {
         assertEquals("hello, world!", chat.messages())
         chat.loadMore()
         chat.loadMore()
-        assertEquals("""
+        assertEquals(
+            """
     hello, world!
     sup, bra?
     yo dog
-    """.trimIndent(), chat.messages())
+    """.trimIndent(), chat.messages()
+        )
 
         // Optional: confirm that your app made the HTTP requests you were expecting.
         val request1: RecordedRequest = server.takeRequest()
@@ -181,7 +211,7 @@ class ChatTest {
         fun readFileWithoutNewLineFromResources(fileName: String): String {
             var inputStream: InputStream? = null
             try {
-                inputStream = javaClass.classLoader?.getResourceAsStream(fileName)
+                inputStream = getInputStreamFromResource(fileName)
                 val builder = StringBuilder()
                 val reader = BufferedReader(InputStreamReader(inputStream))
 
@@ -200,7 +230,7 @@ class ChatTest {
         fun readFileWithNewLineFromResources(fileName: String): String {
             var inputStream: InputStream? = null
             try {
-                inputStream = javaClass.classLoader?.getResourceAsStream(fileName)
+                inputStream = getInputStreamFromResource(fileName)
                 val builder = StringBuilder()
                 val reader = BufferedReader(InputStreamReader(inputStream))
 
@@ -216,16 +246,21 @@ class ChatTest {
             }
         }
 
+        fun kotlinReadFileWithNewLineFromResources(fileName: String): String {
+            return getInputStreamFromResource(fileName)?.bufferedReader()
+                .use { bufferReader -> bufferReader?.readText() } ?: ""
+        }
+
         @Throws(IOException::class)
         fun readBinaryFileFromResources(fileName: String): ByteArray {
             var inputStream: InputStream? = null
             val byteStream = ByteArrayOutputStream()
             try {
-                inputStream = javaClass.classLoader?.getResourceAsStream(fileName)
+                inputStream = getInputStreamFromResource(fileName)
 
                 var nextValue = inputStream?.read() ?: -1
 
-                while ( nextValue != -1 ) {
+                while (nextValue != -1) {
                     byteStream.write(nextValue)
                     nextValue = inputStream?.read() ?: -1
                 }
@@ -236,5 +271,15 @@ class ChatTest {
                 byteStream.close()
             }
         }
+
+        fun kotlinReadBinaryFileFromResources(fileName: String): ByteArray {
+            ByteArrayOutputStream().use { byteStream ->
+                getInputStreamFromResource(fileName)?.copyTo(byteStream)
+                return byteStream.toByteArray()
+            }
+        }
+
+        private fun getInputStreamFromResource(fileName: String)
+                = javaClass.classLoader?.getResourceAsStream(fileName)
     }
 }
